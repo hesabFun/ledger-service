@@ -1,0 +1,29 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Test output
+*.test
+*.out
+coverage.html
+
+# Generated code
+gen/
+
+# Environment
+.env
+
+# Go workspace
+go.work
+go.work.sum

@@ -1,0 +1,56 @@
+services:
+  ledger-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ledger-service
+    ports:
+      - "127.0.0.1:9090:9090"
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 9090
+      DB_HOST: ${PGHOST:-db}
+      DB_PORT: ${PGPORT:-db}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${PGPASSWORD:-postgres}
+      DB_NAME: ${PGDATABASE:-ledger}
+      DB_SSL_MODE: disable
+      DB_MAX_CONNS: 25
+      DB_MIN_CONNS: 5
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  db:
+    image: postgres:18
+    container_name: ledger-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-postgres}
+      POSTGRES_DB: ${PGDATABASE:-ledger}
+    ports:
+      - "127.0.0.1:5432:${PGPORT:-5432}"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  migrate:
+    image: arigaio/atlas:latest
+    container_name: ledger-postgres-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /workspace
+    volumes:
+      - ./db-schema/schema:/workspace/migrations:ro
+    command: ["migrate", "apply", "--url", "postgres://${POSTGRES_USER:-postgres}:${PGPASSWORD:-postgres}@${PGHOST:-db}:${PGPORT:-5432}/${PGDATABASE:-ledger}?search_path=public&sslmode=disable"]
+    restart: "no"
+
+volumes:
+  postgres-data:

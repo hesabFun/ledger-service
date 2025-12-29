@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package ledger.v1;
+
+option go_package = "github.com/hesabFun/ledger/gen/go/ledger/v1;ledgerv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Ledger Service - Core double-entry accounting service
+service LedgerService {
+  // Tenant Management
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
+
+  // Account Management
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  rpc GetAccountBalance(GetAccountBalanceRequest) returns (GetAccountBalanceResponse);
+
+  // Journal Entry Management
+  rpc CreateJournalEntry(CreateJournalEntryRequest) returns (CreateJournalEntryResponse);
+  rpc GetJournalEntry(GetJournalEntryRequest) returns (GetJournalEntryResponse);
+  rpc ListJournalEntries(ListJournalEntriesRequest) returns (ListJournalEntriesResponse);
+
+  // Account Types and Currencies (Reference Data)
+  rpc ListAccountTypes(ListAccountTypesRequest) returns (ListAccountTypesResponse);
+  rpc ListCurrencies(ListCurrenciesRequest) returns (ListCurrenciesResponse);
+}
+
+// ====================
+// Tenant Messages
+// ====================
+
+message CreateTenantRequest {
+  string name = 1;
+}
+
+message CreateTenantResponse {
+  string tenant_id = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message GetTenantRequest {
+  string tenant_id = 1;
+}
+
+message GetTenantResponse {
+  Tenant tenant = 1;
+}
+
+message Tenant {
+  string tenant_id = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+// ====================
+// Account Messages
+// ====================
+
+message CreateAccountRequest {
+  string tenant_id = 1;
+  string account_number = 2;
+  string name = 3;
+  string description = 4;
+  int32 account_type_id = 5;
+  string currency_code = 6;
+  optional string parent_account_id = 7;
+}
+
+message CreateAccountResponse {
+  string account_id = 1;
+  string tenant_id = 2;
+  string account_number = 3;
+  string name = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message GetAccountRequest {
+  string tenant_id = 1;
+  string account_id = 2;
+}
+
+message GetAccountResponse {
+  Account account = 1;
+}
+
+message ListAccountsRequest {
+  string tenant_id = 1;
+  optional int32 page = 2;
+  optional int32 page_size = 3;
+  optional int32 account_type_id = 4;
+  optional string currency_code = 5;
+}
+
+message ListAccountsResponse {
+  repeated Account accounts = 1;
+  int32 total_count = 2;
+}
+
+message Account {
+  string account_id = 1;
+  string tenant_id = 2;
+  string account_number = 3;
+  string name = 4;
+  string description = 5;
+  int32 account_type_id = 6;
+  string currency_code = 7;
+  optional string parent_account_id = 8;
+  bool is_active = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message GetAccountBalanceRequest {
+  string tenant_id = 1;
+  string account_id = 2;
+}
+
+message GetAccountBalanceResponse {
+  string account_id = 1;
+  string debit_balance = 2;  // Using string for decimal precision
+  string credit_balance = 3;  // Using string for decimal precision
+  string net_balance = 4;  // debit - credit
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+// ====================
+// Journal Entry Messages
+// ====================
+
+message CreateJournalEntryRequest {
+  string tenant_id = 1;
+  string reference_number = 2;
+  string description = 3;
+  google.protobuf.Timestamp entry_date = 4;
+  repeated JournalEntryLine lines = 5;
+  optional string metadata = 6;  // JSON string for flexible metadata
+}
+
+message CreateJournalEntryResponse {
+  string journal_entry_id = 1;
+  string tenant_id = 2;
+  string reference_number = 3;
+  google.protobuf.Timestamp entry_date = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message GetJournalEntryRequest {
+  string tenant_id = 1;
+  string journal_entry_id = 2;
+}
+
+message GetJournalEntryResponse {
+  JournalEntry journal_entry = 1;
+}
+
+message ListJournalEntriesRequest {
+  string tenant_id = 1;
+  optional int32 page = 2;
+  optional int32 page_size = 3;
+  optional google.protobuf.Timestamp from_date = 4;
+  optional google.protobuf.Timestamp to_date = 5;
+  optional string account_id = 6;
+}
+
+message ListJournalEntriesResponse {
+  repeated JournalEntry journal_entries = 1;
+  int32 total_count = 2;
+}
+
+message JournalEntry {
+  string journal_entry_id = 1;
+  string tenant_id = 2;
+  string reference_number = 3;
+  string description = 4;
+  google.protobuf.Timestamp entry_date = 5;
+  repeated JournalEntryLine lines = 6;
+  optional string metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message JournalEntryLine {
+  optional string line_id = 1;  // Only populated in responses
+  string account_id = 2;
+  string debit = 3;  // Using string for decimal precision
+  string credit = 4;  // Using string for decimal precision
+  string description = 5;
+  optional google.protobuf.Timestamp created_at = 6;  // Only in responses
+}
+
+// ====================
+// Reference Data Messages
+// ====================
+
+message ListAccountTypesRequest {}
+
+message ListAccountTypesResponse {
+  repeated AccountType account_types = 1;
+}
+
+message AccountType {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  string normal_balance = 4;  // DEBIT or CREDIT
+}
+
+message ListCurrenciesRequest {}
+
+message ListCurrenciesResponse {
+  repeated Currency currencies = 1;
+}
+
+message Currency {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  string symbol = 4;
+  int32 precision = 5;
+}
