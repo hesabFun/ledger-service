@@ -67,7 +67,7 @@ go mod download
 make install-tools
 ```
 
-5. Generate Protocol Buffer code:
+4. Generate Protocol Buffer code:
 ```bash
 make proto
 ```
